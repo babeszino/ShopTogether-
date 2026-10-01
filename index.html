@@ -50,7 +50,6 @@
     padding: 12px 14px; border-radius: 12px;
     border: 1px solid var(--line); background: var(--card); color: var(--text);
   }
-  
 
   /* header */
   header {
@@ -148,7 +147,7 @@
 </head>
 <body>
 
-<div id="app"></div>
+<div id="app"><div class="empty">Loading…</div></div>
 
 <div class="overlay" id="setupOverlay" hidden>
   <h2>One-time setup needed</h2>
@@ -157,6 +156,21 @@
 
 <div class="toast" id="toast"></div>
 
+<script>
+  // If the app crashes before it can draw anything, say so instead of staying blank.
+  function showFatal(e) {
+    var el = document.getElementById("app");
+    if (!el || el.textContent.trim() !== "Loading…") return;
+    var msg = e && (e.message || (e.reason && e.reason.message) || e.reason) || e;
+    el.innerHTML = "";
+    var p = document.createElement("p");
+    p.style.cssText = "padding:24px;color:#dc2626";
+    p.textContent = "Couldn't start the app: " + msg;
+    el.appendChild(p);
+  }
+  window.addEventListener("error", showFatal);
+  window.addEventListener("unhandledrejection", showFatal);
+</script>
 <script type="module">
   import { firebaseConfig } from "./firebase-config.js";
 
@@ -268,13 +282,28 @@
   // ---------- Router ----------
   function route() {
     clearSubs();
-    if (!authReady) return mount(h("div", { class: "empty" }, "Loading…"));
-    if (!user) return renderAuth();
-    const m = location.hash.match(/^#\/list\/([A-Za-z0-9]+)/);
-    if (m) renderList(m[1]); else renderHome();
+    try {
+      if (!authReady) return mount(h("div", { class: "empty" }, "Loading…"));
+      if (!user) return renderAuth();
+      const m = location.hash.match(/^#\/list\/([A-Za-z0-9]+)/);
+      if (m) renderList(m[1]); else renderHome();
+    } catch (ex) {
+      console.error(ex);
+      clearSubs();
+      mount(h("div", { class: "auth stack" },
+        h("h2", {}, "Something went wrong"),
+        h("p", { class: "err" }, String((ex && ex.message) || ex)),
+        h("button", { class: "primary wide", onclick: () => signOut(auth).then(() => location.reload()) }, "Sign out and reload")));
+    }
   }
   window.addEventListener("hashchange", route);
-  onAuthStateChanged(auth, (u) => { user = u; authReady = true; route(); });
+  onAuthStateChanged(auth, async (u) => {
+    // Leftover anonymous sessions from the first version of the app have no email: sign them out.
+    if (u && !u.email) { try { await signOut(auth); } catch {} return; }
+    user = u;
+    authReady = true;
+    route();
+  });
 
   // ---------- Sign in with Google ----------
   function renderAuth() {
