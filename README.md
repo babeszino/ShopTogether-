@@ -1,41 +1,43 @@
 # ShopTogether!
 
-A shared shopping list that opens in the iPhone browser. Same link on both phones, updates live.
+A shared shopping list that opens in the iPhone browser. Accounts, invitations, live sync.
 
-- Add items by name; the other phone sees them instantly.
-- Tap the circle to check an item off when it's in the cart.
-- "Done with shopping" at the bottom clears everything that's checked.
-- Shows who added each item. Works offline in the store and syncs when signal returns.
+- Sign in with email + password. Everyone opens the same site address.
+- Create a named shopping list and invite your partner by email.
+- They sign up with that email, accept the invitation, and the list is on both front pages from then on.
+- Tap a list to open it: add items, tap the circle to check them off, "Done with shopping" clears what's checked.
+- Everything updates live on both phones. Works offline in the store and syncs when signal returns.
 
-It's a single static page (`index.html`) plus Firebase (free tier) for the live sync.
-No Mac, no App Store, no install.
+Single static page (`index.html`) + Firebase (free tier): Authentication + Firestore.
 
-## Setup (about 10 minutes, all from Windows)
+## Firebase setup
 
-### 1. Firebase
-1. <https://console.firebase.google.com> → **Add project** (skip Analytics).
-2. **Build → Authentication → Get started → Sign-in method → Anonymous → Enable.**
-3. **Build → Firestore Database → Create database** (production mode, region e.g. `eur3`).
-4. Firestore → **Rules** → paste the contents of `firestore.rules` → **Publish**.
-5. **Project settings (gear) → Your apps → Web (`</>`)** → register an app (no hosting needed).
-   Copy the `firebaseConfig` values into `firebase-config.js`.
+1. **Authentication → Sign-in method → Email/Password → Enable** (leave "Email link" off). You can disable Anonymous now.
+2. **Firestore Database → Rules** → replace everything with the contents of `firestore.rules` → **Publish**.
+3. `firebase-config.js` must contain your web app config (already done if the site loaded before).
 
-### 2. Put it online (GitHub Pages)
-1. Commit and push this folder to a GitHub repo (`git add . && git commit -m "web app" && git push`).
-2. On GitHub: repo → **Settings → Pages → Build from branch → `main` / root → Save**.
-3. After a minute your site is at `https://<your-username>.github.io/<repo-name>/`.
+## Deploy (GitHub Pages)
 
-### 3. Use it
-1. Open that address on your iPhone. Enter your name. The address now ends in `#something`.
-   **That full link is your shared list.**
-2. Tap the share button (top right) and send the link to your girlfriend. She opens it, enters her name, done.
-3. Optional: in Safari tap Share → **Add to Home Screen** for an app-like icon.
-   (Do this from the full link with the `#…` part.)
+```powershell
+git add .
+git commit -m "Accounts and invitations"
+git push
+```
+The site updates a minute later. If your phone still shows the old version, reload or close the tab and reopen it.
 
-Anyone with the full link can edit the list, so keep it between you two.
+## Using it
+
+1. Both of you open the site address, tap **Create an account**, enter name + email + password.
+2. One of you taps **New shopping list**, names it, and types the other person's email (the one they signed up with).
+3. The other person signs in and sees the invitation on the front page → **Accept**.
+4. Optional: in Safari tap Share → **Add to Home Screen**.
+
+Invitations match the exact email address. Lists can be renamed (✎), extended with more people, or deleted by their creator.
 
 ## Troubleshooting
-- "One-time setup needed" screen → `firebase-config.js` still has the placeholder values.
-- "Missing or insufficient permissions" → rules not published, or Anonymous sign-in not enabled.
-- Sign-in error mentioning the domain → Authentication → Settings → Authorized domains → add `<your-username>.github.io`.
-- Test locally first: `npx serve .` in this folder (opening the file directly won't work because of ES modules).
+- "Email/password sign-in isn't enabled" → step 1 above.
+- "You don't have permission…" → the rules from step 2 aren't published.
+- Forgot password → "Forgot password?" on the sign-in screen sends a reset email.
+- Test locally: `npx serve .` in this folder (opening the file directly won't work because of ES modules).
+
+Note: invitations trust the email on the account; there is no email-verification step. Fine for two people, but don't invite an address you don't control.
